@@ -1,5 +1,6 @@
 ﻿using Labb3_ADV.NET.Data;
 using Labb3_ADV.NET.Models;
+using Labb3_ADV.NET.Models.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,9 +18,26 @@ namespace Labb3_ADV.NET.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Person>>> GetAllPersons()
+        public async Task<ActionResult<IEnumerable<PersonDto>>> GetAllPersons()
         {
-            return await _context.Persons.ToListAsync();
+            var persons = await _context.Persons
+                .Include(p => p.PersonInterests)
+                    .ThenInclude(pi => pi.Interest)
+                .Select(p => new PersonDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    PhoneNumber = p.PhoneNumber,
+                    Interests = p.PersonInterests.Select(pi => new InterestDto
+                    {
+                        Id = pi.Interest.Id,
+                        Title = pi.Interest.Title,
+                        Description = pi.Interest.Description
+                    }).ToList()
+                })
+                .ToListAsync();
+
+            return Ok(persons);
         }
 
         [HttpGet("{id}/interests")]
